@@ -1,0 +1,357 @@
+#!/bin/bash
+
+#Homework 1
+#CS344
+#Edgar Perez
+#This program performs the following operation using matrices as arguments
+#dims: Dipslays the dimention of a given matrix
+#transpose: Converts 1 matrix's rows into columns
+#mean: Calculates the mean of each column and displyas it on 1xM matrix
+#add: Adds two matrices
+#multiply: Multiply two matrices
+
+trap "rm -r m1$$ m2$$ mt$$ tempcol$$ temp_sum$$ transpose$$ ans$$; exit 1" INT HUP TERM
+
+################################################################################
+# Funtion that determinest the dimention of the given matrix
+# it should only take one matrix
+################################################################################
+dim(){
+#display the number of arguments passed onto dim() for testing only
+#echo "$#"
+
+#Check the number of arguments, it should only take 1(uno) argument
+if [[ $# -gt 1 ]]
+then
+	echo "Incorrect number of arguments" 1>&2
+	exit 1
+# make sure file that is being pass as arg exist
+elif [ ! -e $1 ]
+then
+	echo "File does not exist" 1>&2
+	exit 1
+# If there is no argument after dims such as dims m1 then enter one
+# for pipping a matrix into the function
+elif [ $# -eq 0 ]
+then
+	  #echo "File does not exits or can't be read"
+		#echo "Please type a valid matrix then when done Ctrl+d"
+		cat $1 > m1$$
+
+else
+	cp $1 m1$$
+fi
+
+#By using cat comand and the giben matrix followed by | wc -l it will return
+#the number of lines in the matrix which essentially is the number of rows.
+#I found 2 different ways to do it:
+	rows=$(wc -l < m1$$)
+	#rows=$(cat m1$$ | wc -l)
+#Translate(tr) the first line such as 1 2 3 4 and look for the tab (\t) char which
+#separates every number by changgin the tab char for new line. Makes it in
+#list type and lastly it counts the total numbers in the list type which is
+#the number of columns (basically tr replace \t by \n new line) and counts
+	columns=$(head -n1 m1$$ | tr "\t" '\n' | wc -l)
+
+#dimentios of matrix ROWS X COLUMNS example(4 x 4) without the 'x'
+echo $rows $columns
+
+#last remove files used
+rm -f m1$$
+return 0
+}
+
+################################################################################
+trans(){
+#Check the number of arguments, it should only take 1(uno) argument
+if [[ $# -gt 1 ]]
+then
+	echo "Incorrect number of arguments" 1>&2
+	exit 1
+#Make sure file is readable
+elif [ ! -r $1 ]
+then
+	echo "File can't be read" 1>&2
+	exit 1
+# If there is no argument after dims such as dims m1 then enter one
+# for pipping a matrix into the function
+elif [ $# -eq 0 ]
+then
+		#echo "Please type a valid matrix then when done Ctrl+d"
+		cat $1 > m1$$
+
+else
+	cp $1 m1$$
+fi
+
+#These next 2 lines are described in dim() function
+rows=`cat m1$$ | wc -l`
+columns=`head -n1 m1$$ | tr "\t" '\n' | wc -l`
+
+#head -n1 m1$$ | tr '\t' '\n' >> mt$$
+
+for (( cnt=1; cnt<=$columns; cnt++ ))
+do
+#cut a column delimitted by tab('$') of the given matrix(m1) then paste it
+#in a single line and every row is delimitted by tab('\t')
+	cut -f "$cnt" m1$$ | paste -s >> mt$$
+done
+
+cat mt$$
+
+#last remove files used
+rm -f m1$$ mt$$
+return 0
+}
+
+################################################################################
+exe_mean(){
+#Check the number of arguments, it should only take 1(uno) argument
+if [[ $# -gt 1 ]]
+then
+	echo "Incorrect number of arguments" 1>&2
+	exit 1
+# make sure file that is being pass as arg exist
+elif [ ! -e $1 ]
+then
+	echo "File does not exist" 1>&2
+	exit 1
+# If there is no argument after dims such as dims m1 then enter one
+# for pipping a matrix into the function
+elif [ $# -eq 0 ]
+then
+		cat $1 > m1$$
+
+else
+	cp $1 m1$$
+fi
+
+#These next 2 lines are described in dim() function
+rows=`cat m1$$ | wc -l`
+columns=`head -n1 m1$$ | tr "\t" '\n' | wc -l`
+
+for (( i=1; i<=$columns; i++))
+do
+#every time the column gets added it needs to be reset to 0
+col_sum=0
+	while read file
+	do
+		#add each column
+		col_sum=$(($col_sum+$file))
+
+		#proper way to round function provided by insturctor Benjamin Brewster
+		col_mean=$((($col_sum+($rows/2)*(($col_sum>0)*2-1))/$rows))
+
+	done < <(cat m1$$ | cut -d $'\t' -f $i)
+	#add the final result from each column into a file 'mean' as a list form
+	#in one column only
+	echo $col_mean >> mean$$
+done
+
+#finaly transpose the final result and dunzo!
+trans mean$$ #>> temp_file$$ #by doing this the final answer goes into a file
+
+#remove any temporary files used
+rm -f m1$$ mean$$
+return 0
+}
+
+################################################################################
+exe_add(){
+#check arguments
+if [ $# -lt 2 ]
+then
+	echo "Missing arguments" 1>&2
+	exit 1
+#One argument is available but second is not present or missing
+elif [ $# -eq 1 ]
+then
+	echo "Missing arguments (maybe enter one more)" 1>&2
+	exit 1
+elif [ $# -eq 0 ]
+then
+	#echo "Please type a valid matrix then when done Ctrl+d"
+	cat $1 > m1$$
+	cat $2 > m2$$
+
+else
+	cp $1 m1$$
+	cp $2 m2$$
+fi
+
+rows_1=$(cat m1$$ | wc -l)
+rows_2=$(cat m2$$ | wc -l)
+
+columns_1=$(head -n1 m1$$ | tr "\t" '\n' | wc -l)
+columns_2=$(head -n1 m2$$ | tr "\t" '\n' | wc -l)
+
+#After columns and rows were determined from each matrix check if they match
+if [ $rows_1 -eq $rows_2 ] && [ $columns_1 -eq $columns_2 ]
+then
+		#echo "They match, next step add them!"
+
+		for ((col_ct=1; col_ct<=$columns_1; col_ct++))
+		do
+				#clear the temporary file that contains just one column to re-use it in
+				#every iteration
+				>tempcol$$
+
+					# By cutting every column and using while read, it adds row by row of
+					#one column of each matix
+					while read file1 && read file2 <&3
+					do
+
+					#echo "$file1"
+					#echo "$file2"
+					suma=$(($file1+$file2))
+
+					echo "$suma" >> tempcol$$
+					#2 different ways to do it, same result
+					#done < <(cat m1$$ | cut -d $'\t' -f $col_ct) 3< <(cat m2$$ | cut -d $'\t' -f $col_ct)
+					#(cat FILENAME | cut -f #column)---> it returns the items in #column
+					done < <(cat m1$$ | cut -f $col_ct) 3< <(cat m2$$ | cut -f $col_ct)
+
+		#cut the temporary column and make it a row delimited by tabs
+		cut -f $col_ct tempcol$$ | paste -s >> temp_sum$$
+
+		done #for loop
+
+else
+		echo "Mismatched Matrices try again :(" 1>&2
+		exit 1
+fi
+
+#Transpose the final matrix to get the final answer
+trans temp_sum$$
+
+#remove any temporary files used
+rm -f m1$$ m2$$ tempcol$$ temp_sum$$
+return 0
+}
+
+################################################################################
+exe_mul(){
+#check arguments
+if [ $# -lt 2 ]
+then
+	echo "Missing arguments" 1>&2
+	exit 1
+#One argument is available but second is not present or missing
+#elif [ $# -eq 1 ]
+#then
+	#echo "Missing arguments (maybe enter one more)" 1>&2
+	#exit 1
+elif [ $# -eq 0 ]
+then
+	#echo "Please type a valid matrix then when done Ctrl+d"
+	cat $1 > ma1$$
+	cat $2 > m2$$
+
+else
+	cp $1 ma1$$
+	cp $2 m2$$
+fi
+
+#Calculates the rows and columns of both matrices
+rows_1=$(cat ma1$$ | wc -l)
+rows_2=$(cat m2$$ | wc -l)
+columns_1=$(head -n1 ma1$$ | tr "\t" '\n' | wc -l)
+columns_2=$(head -n1 m2$$ | tr "\t" '\n' | wc -l)
+
+#transpose matrix of m1 to get the 1st row or 2nd row...
+trans ma1$$ >> transpose$$
+
+#Rows and Columns base on
+
+if [ $columns_1 -eq $rows_2 ]
+then
+#echo "Multiplication can be executed"
+
+for ((row_ct=1; row_ct<=$rows_1; row_ct++))
+do
+#reset columns count
+col_ct=1
+#wipe file
+>tempcol$$
+	for ((col_ct=1; col_ct<=$columns_2; col_ct++))
+	do
+			#clear the temporary file that contains just one column to re-use it in every
+			#iteration
+			#>tempcol$$
+
+			#reset mult
+			mult=0
+
+				# By cutting every column and using while read, it adds row by row of one column
+				# of each matix
+				while read file1 && read file2 <&3
+				do
+				#multiply and add the elemets from row and column such as (1)(2)+(3)(4)=14
+				mult=$((($mult+($file1*$file2))))
+
+			done < <(cat transpose$$ | cut -f $row_ct) 3< <(cat m2$$ | cut -f $col_ct)
+			# Add a partial result into temporary column
+			echo "$mult" >> tempcol$$
+
+	done #2nd for loop
+	#cut the first column(there is only one column in this file) delimited by tab
+	#and paste the column cutted in a line and every elemet is separated by '\t' tabs
+	cut -f 1 tempcol$$ | paste -s >> ans$$
+	#cat tempcol$$ | tr "\n" "\t" >> temp_ans$$
+	#head -c -1 temp_ans$$ >> mult_ans$$
+	#echo "" >> mult_ans$$
+	#rm -f temp_ans$$
+done #1st for loop
+
+else
+	echo "Multiplication cannot be perfomr due to mismatched dimentions of matrices" 1>&2
+	exit 1
+fi
+
+#cat tempcol$$
+#mult_ans is the final matrix with the multiplication result
+cat ans$$
+
+#remove any temporary files used
+rm -f ma1$$ m2$$ transpose$$ tempcol$$ ans$$
+return 0
+}
+
+################################################################################
+# This section bellow determines what function has been entered by the user and
+# will execute any of the functions described avobe
+################################################################################
+
+#check to see if there is any argument valid or no argument to be executed
+if [ $# -eq 0 ]
+then
+	echo "There is no operation to be done." 1>&2
+	exit 1
+
+elif [ $1 = dims ]
+then
+    dim "${@:2}"    #executes the dim function of 1 matrix only
+
+elif [ $1 = transpose ]
+then
+  	trans "${@:2}"    	#executes the transpose function of 1 matrix only
+
+elif [ $1 = mean ]
+then
+    exe_mean "${@:2}"    #executes the mean function of 1 matrix only
+
+elif [ $1 = add ]
+then
+    exe_add "${@:2}"    #executes the add function of 2 matrices only
+
+elif [ $1 = multiply ]
+then
+    exe_mul "${@:2}"    #executes the multiply function of 2 matrices only
+
+else
+	echo "Comand entered does not exist." 1>&2
+	exit 1
+
+fi
+
+exit 0

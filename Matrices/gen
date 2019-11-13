@@ -1,0 +1,62 @@
+#!/bin/bash
+
+#generate and ident
+function generate(){
+	y=0
+	a=$3
+	b=$4
+	while [ $y -lt $1 ]
+	do
+		x=0
+		((y++))
+		while [ $x -lt $2 ]
+		do
+			((x++))
+			echo -n $((RANDOM%(b-a+1)+a))
+			if [ $x -ne $2 ]
+			then
+			echo -ne "\t"
+			else
+				echo
+			fi
+		done
+	done
+}
+
+
+function ident(){
+	y=0
+	while [ $y -lt $1 ]
+	do
+		x=0
+		((y++))
+		while [ $x -lt $2 ]
+		do
+			((x++))
+			if [ $x -eq $y ]
+			then
+				echo -n 1
+			else
+				echo -n 0
+			fi
+			if [ $x -ne $2 ]
+			then
+				echo -ne "\t"
+			else
+				echo
+			fi
+		done
+	done
+}
+
+#for echo "I * M == M? (5pt):" this one is ok
+ident 10 10 > uno$$
+generate 10 15 -100 100 > dos$$
+
+#for echo "M * I == M? (5pt):"
+generate 15 10 -100 100 > tres$$
+ident 10 10 > cuatro$$
+
+#for echo "0 * M == 0? (5pt):"
+generate 30 14 0 0 > cinco$$
+generate 14 12 -100 100 > seis$$
