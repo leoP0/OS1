@@ -1,4 +1,3 @@
-#Assigment 4
 #Python Exploration
 #CS344
 #Edgar Perez
